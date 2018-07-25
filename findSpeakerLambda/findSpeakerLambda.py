@@ -1,6 +1,7 @@
 import redis 
+import time
 
-'''LISTENER SCRIPT that has the find speaker logic'''
+'''LISTENER SCRIPT that has the find speaker, logic'''
 
 REDIS_SETUP = {
 'host' : 'lowkeyapp-redis-001.hznbrp.0001.euc1.cache.amazonaws.com',
@@ -8,15 +9,47 @@ REDIS_SETUP = {
 'db': 0,
 }
 
+REDIS_QUEUE_NAMESPACE = 'queue'
+REDIS_QUEUE_NAME = 'matching'
+
+USER_QUERY_STRING = 'user'
+
+RESPONSE_STATUS_CODE = 'status_code'
+RESPONSE_ERROR_MESSAGE = 'error_message'
+RESPONSE_DATA = 'data'
+
 def handler(event, context):
-    rq = RedisQueue('queue', **REDIS_SETUP)
-    user = event["user"]
-    rq.put(user)
+    rq = RedisQueue(name=REDIS_QUEUE_NAME, namespace=REDIS_QUEUE_NAMESPACE, **REDIS_SETUP)
 
-    while rq.get_redis_client().get(user) is None:
-        pass
+    # if there is no user in the url query string stop the logic 
+    if USER_QUERY_STRING not in event:
+        return {RESPONSE_STATUS_CODE: 400, RESPONSE_ERROR_MESSAGE: 'No user provided in the query string', RESPONSE_DATA: ''}
 
-    return rq.get_redis_client().get(user).decode('utf-8')
+    # get the user from the url query string
+    listener = event[USER_QUERY_STRING] 
+
+    # create the hashtable namespaced key
+    listener_key = f'{REDIS_QUEUE_NAMESPACE}:{listener}'
+
+    # add the listener in the queue
+    rq.put(listener)
+
+    # wait for the listener to find a speaker -> the speaker will add a flag to announce the listener that has been grabbed
+    speaker = rq.get_redis_client().get(listener_key)
+    while speaker is None:
+        speaker = rq.get_redis_client().get(listener_key)
+        time.sleep(0.3)
+    
+    # check again the flag in the cache so it is sure that the listener has not been taken by other API call
+    if rq.get_redis_client().get(listener_key) is not None:
+        # delete the flag after the matching has been made
+        rq.get_redis_client().delete(listener_key)
+        
+        # return the speaker
+        return {RESPONSE_STATUS_CODE: 200, RESPONSE_ERROR_MESSAGE: '', RESPONSE_DATA: speaker.decode('utf-8')}
+
+    # it means that the speaker has been taken so return an emptry string
+    return {RESPONSE_STATUS_CODE: 200, RESPONSE_ERROR_MESSAGE: 'Speaker already had been taken', RESPONSE_DATA: ''}
 
 
 
