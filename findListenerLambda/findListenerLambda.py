@@ -1,17 +1,18 @@
 import redis 
+import os
 
 '''SPEAKER SCRIPT that has the find listener, logic'''
 
 REDIS_SETUP = {
-'host' : 'lowkeyapp-redis-001.hznbrp.0001.euc1.cache.amazonaws.com',
-'port': 6379,
+'host' : os.environ['REDIS_ENDPOINT'],
+'port': os.environ['REDIS_PORT'],
 'db': 0,
 }
 
 REDIS_QUEUE_NAMESPACE = 'queue'
 REDIS_QUEUE_NAME = 'matching'
 
-USER_QUERY_STRING = 'user'
+USER_QUERY_STRING = os.environ['USER_QUERY_STRING']
 
 RESPONSE_STATUS_CODE = 'status_code'
 RESPONSE_ERROR_MESSAGE = 'error_message'
