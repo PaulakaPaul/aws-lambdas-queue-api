@@ -14,16 +14,16 @@ REDIS_QUEUE_NAME = 'matching'
 
 USER_QUERY_STRING = os.environ['USER_QUERY_STRING']
 
-RESPONSE_STATUS_CODE = 'status_code'
-RESPONSE_ERROR_MESSAGE = 'error_message'
-RESPONSE_DATA = 'data'
+RESPONSE_STATUS_CODE = "status_code"
+RESPONSE_ERROR_MESSAGE = "error_message"
+RESPONSE_DATA = "data"
 
 def handler(event, context):
     rq = RedisQueue(name=REDIS_QUEUE_NAME, namespace=REDIS_QUEUE_NAMESPACE, **REDIS_SETUP)
     
      # if there is no user in the url query string stop the logic 
-    if USER_QUERY_STRING not in event:
-        return {RESPONSE_STATUS_CODE: 400, RESPONSE_ERROR_MESSAGE: 'No user provided in the query string', RESPONSE_DATA: ''}
+    if USER_QUERY_STRING not in event or event[USER_QUERY_STRING].__eq__(""):
+        return {RESPONSE_STATUS_CODE: 400, RESPONSE_ERROR_MESSAGE: "No user provided in the query string", RESPONSE_DATA: ""}
 
     # get the user from the url query string
     speaker = event[USER_QUERY_STRING] 
@@ -33,7 +33,7 @@ def handler(event, context):
 
     if listener is None:
         # if there is no listener return empty string
-        return {RESPONSE_STATUS_CODE: 200, RESPONSE_ERROR_MESSAGE: 'No listener cached', RESPONSE_DATA: ''}
+        return {RESPONSE_STATUS_CODE: 200, RESPONSE_ERROR_MESSAGE: "No listener cached", RESPONSE_DATA: ""}
     else:
         listener = listener.decode('utf-8')
 
@@ -43,7 +43,7 @@ def handler(event, context):
         # add flag to announce the listener that the matching had been done and also pass him the speaker        
         rq.get_redis_client().set(listener_key, speaker)
 
-    return {RESPONSE_STATUS_CODE: 200, RESPONSE_ERROR_MESSAGE: '', RESPONSE_DATA: listener}
+    return {RESPONSE_STATUS_CODE: 200, RESPONSE_ERROR_MESSAGE: "", RESPONSE_DATA: listener}
 
 
 

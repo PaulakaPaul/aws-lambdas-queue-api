@@ -23,7 +23,7 @@ def handler(event, context):
     rq = RedisQueue(name=REDIS_QUEUE_NAME, namespace=REDIS_QUEUE_NAMESPACE, **REDIS_SETUP)
 
     # if there is no user in the url query string stop the logic 
-    if USER_QUERY_STRING not in event:
+    if USER_QUERY_STRING not in event or event[USER_QUERY_STRING].__eq__(""):
         return {RESPONSE_STATUS_CODE: 400, RESPONSE_ERROR_MESSAGE: 'No user provided in the query string', RESPONSE_DATA: ''}
 
     # get the user from the url query string
