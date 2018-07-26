@@ -9,7 +9,8 @@ REDIS_SETUP = {
 'db': 0,
 }
 
-REDIS_QUEUE_NAMESPACE = 'queue'
+REDIS_SPEAKER_FLAG_NAMESPACE = 'speaker'
+REDIS_TIMEOUT_FLAG_NAMESPACE = 'timeout'
 REDIS_QUEUE_NAME = 'matching'
 
 USER_QUERY_STRING = os.environ['USER_QUERY_STRING']
@@ -19,7 +20,7 @@ RESPONSE_ERROR_MESSAGE = "error_message"
 RESPONSE_DATA = "data"
 
 def handler(event, context):
-    rq = RedisQueue(name=REDIS_QUEUE_NAME, namespace=REDIS_QUEUE_NAMESPACE, **REDIS_SETUP)
+    rq = RedisQueue(name=REDIS_QUEUE_NAME, **REDIS_SETUP)
     
      # if there is no user in the url query string stop the logic 
     if USER_QUERY_STRING not in event or event[USER_QUERY_STRING].__eq__(""):
@@ -28,25 +29,38 @@ def handler(event, context):
     # get the user from the url query string
     speaker = event[USER_QUERY_STRING] 
 
-    # try to get the listener from the queue
-    listener = rq.get(timeout=1)
+    # try to get the listener from the queue and check if it has been timed out
+    listener_not_valid = True
+    while listener_not_valid:
+        listener = rq.get(timeout=1)
 
-    if listener is None:
-        # if there is no listener return empty string
-        return {RESPONSE_STATUS_CODE: 200, RESPONSE_ERROR_MESSAGE: "No listener cached", RESPONSE_DATA: ""}
-    else:
+        if listener is None:
+            # if there is no listener return empty string
+            return {RESPONSE_STATUS_CODE: 200, RESPONSE_ERROR_MESSAGE: "No listener cached", RESPONSE_DATA: ""}
+
         listener = listener.decode('utf-8')
+        listener_timeout_key = f'{REDIS_TIMEOUT_FLAG_NAMESPACE}:{listener}'
+        
+        if rq.get_redis_client().get(listener_timeout_key) is not None and get_int_from_redis_hashtable(rq.get_redis_client(), listener_timeout_key) > 0:
+            # decrement so we know that we took one timed out listener from the queue and loop again
+            rq.get_redis_client().set(listener_timeout_key, 
+                get_int_from_redis_hashtable(rq.get_redis_client(), listener_timeout_key) -1)
+        else:
+            # if the cached flag is 0 continue 
+            listener_not_valid = False
+   
+    # create the hashtable namespaced key
+    listener_key = f'{REDIS_SPEAKER_FLAG_NAMESPACE}:{listener}'
 
-        # create the hashtable namespaced key
-        listener_key = f'{REDIS_QUEUE_NAMESPACE}:{listener}'
-
-        # add flag to announce the listener that the matching had been done and also pass him the speaker        
-        rq.get_redis_client().set(listener_key, speaker)
+    # add flag to announce the listener that the matching had been done and also pass him the speaker        
+    rq.get_redis_client().set(listener_key, speaker)
 
     return {RESPONSE_STATUS_CODE: 200, RESPONSE_ERROR_MESSAGE: "", RESPONSE_DATA: listener}
 
 
-
+def get_int_from_redis_hashtable(redis_client, key: str):
+    return int(redis_client.get(key).decode('utf-8'))
+    
 
 class RedisQueue(object):
     """Simple Queue with Redis Backend"""

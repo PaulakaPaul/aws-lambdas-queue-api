@@ -10,8 +10,12 @@ REDIS_SETUP = {
 'db': 0,
 }
 
-REDIS_QUEUE_NAMESPACE = 'queue'
+REDIS_SPEAKER_FLAG_NAMESPACE = 'speaker'
+REDIS_TIMEOUT_FLAG_NAMESPACE = 'timeout'
 REDIS_QUEUE_NAME = 'matching'
+
+LAMBDA_TIMEOUT_SECONDS = 45 
+LAMBDA_WAIT_SPEAKER_SECONDS = LAMBDA_TIMEOUT_SECONDS - 10
 
 USER_QUERY_STRING = os.environ['USER_QUERY_STRING']
 
@@ -20,7 +24,7 @@ RESPONSE_ERROR_MESSAGE = 'error_message'
 RESPONSE_DATA = 'data'
 
 def handler(event, context):
-    rq = RedisQueue(name=REDIS_QUEUE_NAME, namespace=REDIS_QUEUE_NAMESPACE, **REDIS_SETUP)
+    rq = RedisQueue(name=REDIS_QUEUE_NAME, **REDIS_SETUP)
 
     # if there is no user in the url query string stop the logic 
     if USER_QUERY_STRING not in event or event[USER_QUERY_STRING].__eq__(""):
@@ -30,16 +34,38 @@ def handler(event, context):
     listener = event[USER_QUERY_STRING] 
 
     # create the hashtable namespaced key
-    listener_key = f'{REDIS_QUEUE_NAMESPACE}:{listener}'
+    listener_key = f'{REDIS_SPEAKER_FLAG_NAMESPACE}:{listener}'
 
     # add the listener in the queue
     rq.put(listener)
 
+    # get a reference in time
+    time_reference = time.time()
+
     # wait for the listener to find a speaker -> the speaker will add a flag to announce the listener that has been grabbed
     speaker = rq.get_redis_client().get(listener_key)
+    time_pass_out = False
+
     while speaker is None:
-        speaker = rq.get_redis_client().get(listener_key)
-        time.sleep(0.3)
+        # check if the time passed -> if not wait for the speaker flag
+        if time_reference + LAMBDA_WAIT_SPEAKER_SECONDS > time.time():
+            speaker = rq.get_redis_client().get(listener_key)
+            time.sleep(0.25)  # be nice to aws system
+        else:
+            # add a flag that this listener timeout and is no longer available
+            time_passed_out = True
+
+            # if the data at time_out_key is 0 it means that the listener is available else 
+            # the number cached in the redis[time_out_key] shows the number of timed out listeners
+            time_out_key = f'{REDIS_TIMEOUT_FLAG_NAMESPACE}:{listener}'
+            if rq.get_redis_client().get(time_out_key) is None:
+                rq.get_redis_client().set(time_out_key, 1)
+            else:
+                rq.get_redis_client().set(time_out_key, 
+                    get_int_from_redis_hashtable(rq.get_redis_client(), time_out_key) + 1)
+            
+            # time passed so get out of the loop
+            break
     
     # check again the flag in the cache so it is sure that the listener has not been taken by other API call
     if rq.get_redis_client().get(listener_key) is not None:
@@ -50,10 +76,12 @@ def handler(event, context):
         return {RESPONSE_STATUS_CODE: 200, RESPONSE_ERROR_MESSAGE: '', RESPONSE_DATA: speaker.decode('utf-8')}
 
     # it means that the speaker has been taken so return an emptry string
-    return {RESPONSE_STATUS_CODE: 200, RESPONSE_ERROR_MESSAGE: 'Speaker already had been taken', RESPONSE_DATA: ''}
+    return {RESPONSE_STATUS_CODE: 200, RESPONSE_ERROR_MESSAGE: 'Speaker already had been taken or no speaker flagged this listener', RESPONSE_DATA: ''}
 
 
-
+def get_int_from_redis_hashtable(redis_client, key: str):
+    return int(redis_client.get(key).decode('utf-8'))
+    
 
 class RedisQueue(object):
     """Simple Queue with Redis Backend"""
