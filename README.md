@@ -1,6 +1,8 @@
 # aws-lambdas
-### * que 
-### * messaging 
+```
+* queue 
+* messaging 
+```
 
 #### !!!!!!!!! findListenerLambda and findSpeakerLambda depricated
 
