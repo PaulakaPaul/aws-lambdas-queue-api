@@ -14,8 +14,8 @@ REDIS_SPEAKER_FLAG_NAMESPACE = 'speaker'
 REDIS_TIMEOUT_FLAG_NAMESPACE = 'timeout'
 REDIS_QUEUE_NAME = 'matching'
 
-LAMBDA_TIMEOUT_SECONDS = 45 
-LAMBDA_WAIT_SPEAKER_SECONDS = LAMBDA_TIMEOUT_SECONDS - 10
+LAMBDA_TIMEOUT_SECONDS = 60
+LAMBDA_WAIT_SPEAKER_SECONDS = 3
 
 USER_QUERY_STRING = os.environ['USER_QUERY_STRING']
 
@@ -35,6 +35,7 @@ def handler(event, context):
 
     # create the hashtable namespaced key
     listener_key = f'{REDIS_SPEAKER_FLAG_NAMESPACE}:{listener}'
+    print(listener_key)
 
     # add the listener in the queue
     rq.put(listener)
@@ -44,13 +45,15 @@ def handler(event, context):
 
     # wait for the listener to find a speaker -> the speaker will add a flag to announce the listener that has been grabbed
     speaker = rq.get_redis_client().get(listener_key)
+    print("Initial speaker: ", speaker)
     time_pass_out = False
 
-    while speaker is None:
+    while speaker is None or speaker.decode('utf-8').__eq__(""):
+        
         # check if the time passed -> if not wait for the speaker flag
         if time_reference + LAMBDA_WAIT_SPEAKER_SECONDS > time.time():
             speaker = rq.get_redis_client().get(listener_key)
-            time.sleep(0.25)  # be nice to aws system
+            print('Wait: ', speaker)
         else:
             # add a flag that this listener timeout and is no longer available
             time_passed_out = True
@@ -63,14 +66,19 @@ def handler(event, context):
             else:
                 rq.get_redis_client().set(time_out_key, 
                     get_int_from_redis_hashtable(rq.get_redis_client(), time_out_key) + 1)
-            
+                 
+            # if the speaker was added in this case is too late but we still have to cleanup the flag   
+            if rq.get_redis_client().get(listener_key) is not None and not rq.get_redis_client().get(listener_key).__eq__(""):
+                # delete the flag after the matching has been made
+                rq.get_redis_client().set(listener_key, "")
+                
             # time passed so get out of the loop
-            break
-    
-    # check again the flag in the cache so it is sure that the listener has not been taken by other API call
-    if rq.get_redis_client().get(listener_key) is not None:
+            return {RESPONSE_STATUS_CODE: 200, RESPONSE_ERROR_MESSAGE: 'No speaker', RESPONSE_DATA: ''}
+
+   
+    if speaker is not None and not speaker.decode('utf-8').__eq__(""):
         # delete the flag after the matching has been made
-        rq.get_redis_client().delete(listener_key)
+        rq.get_redis_client().set(listener_key, "")
         
         # return the speaker
         return {RESPONSE_STATUS_CODE: 200, RESPONSE_ERROR_MESSAGE: '', RESPONSE_DATA: speaker.decode('utf-8')}

@@ -1,2 +1,5 @@
 *.zip
 .vscode
+/*/common
+redis
+redis-2.10.6.dist-info

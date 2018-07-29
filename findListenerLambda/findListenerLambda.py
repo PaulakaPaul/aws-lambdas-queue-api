@@ -33,6 +33,8 @@ def handler(event, context):
     listener_not_valid = True
     while listener_not_valid:
         listener = rq.get(timeout=1)
+        print(listener)
+        
 
         if listener is None:
             # if there is no listener return empty string
@@ -46,11 +48,12 @@ def handler(event, context):
             rq.get_redis_client().set(listener_timeout_key, 
                 get_int_from_redis_hashtable(rq.get_redis_client(), listener_timeout_key) -1)
         else:
-            # if the cached flag is 0 continue 
+            # if the cached flag is 0 or None continue 
             listener_not_valid = False
    
     # create the hashtable namespaced key
     listener_key = f'{REDIS_SPEAKER_FLAG_NAMESPACE}:{listener}'
+    print(listener_key)
 
     # add flag to announce the listener that the matching had been done and also pass him the speaker        
     rq.get_redis_client().set(listener_key, speaker)
