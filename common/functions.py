@@ -28,3 +28,6 @@ def check_if_listener_has_lobby(rq: RedisQueue, listener: bytes) -> bool:
     listener = listener.decode('utf-8')
     lobby_key = f'{s.REDIS_LOBBY_NAMESPACE}:{listener}'
     return bool(rq.db.sismember(lobby_key, s.REDIS_LOBBY_CREATE_FLAG))
+
+def get_int_from_bytes(b: bytes) -> int:
+    return int(b.decode('utf-8'))

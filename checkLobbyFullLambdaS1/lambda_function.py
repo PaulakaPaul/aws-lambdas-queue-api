@@ -40,6 +40,15 @@ def lambda_handler(event, context):
             speaker = speaker.decode('utf-8')
             if not speaker.__eq__(s.REDIS_LOBBY_CREATE_FLAG):
                 speakers.append(speaker)
+
+        # when speakers_ready == s.REDIS_MAX_LOBBY_NUMBER then the listener will get the lobby and delete it 
+        lobby_ready_for_listener_key = f'{lobby_key}:{s.REDIS_LOBBY_READY_FOR_LISTENER_NAMESPACE}'
+        speakers_ready = redis_client.get(lobby_ready_for_listener_key)
+        if speakers_ready:
+            redis_client.set(lobby_ready_for_listener_key,
+                redis_client.get(lobby_ready_for_listener_key) + 1)
+        else:
+            redis_client.set(lobby_ready_for_listener_key, 1)
         
         return f.create_response(200, 
         '', speakers)

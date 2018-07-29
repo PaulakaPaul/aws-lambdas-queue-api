@@ -12,6 +12,12 @@ def lambda_handler(event, context):
     redis_client = redis.StrictRedis(**s.REDIS_SETUP)
     listener = event[s.USER_QUERY_STRING]
 
+    # delete lobby
     lobby_key = f'{s.REDIS_LOBBY_NAMESPACE}:{listener}'
     is_deleted = redis_client.delete(lobby_key)
-    return f.create_response(200, '', f'The lobby is deleted: {is_deleted}')
+
+    # delete the flag
+    lobby_ready_for_listener_key = f'{lobby_key}:{s.REDIS_LOBBY_READY_FOR_LISTENER_NAMESPACE}'
+    flag_deleted = redis_client.delete(lobby_ready_for_listener_key)
+    
+    return f.create_response(200, '', f'The lobby is deleted: {is_deleted}. The flag is deleted: {flag_deleted}')
