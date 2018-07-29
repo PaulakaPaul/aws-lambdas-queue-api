@@ -10,3 +10,9 @@
     - copy the ./common folder to 'path/to/lambda/file'
     - zip the folder content 
 ```
+
+# API (referenced to the base url that it's stored on aws API Gateway on the Redis project)
+```
+    * queue/listener -> DELETE, POST, GET
+    * queue/speaker -> DELETE, POST, GET
+```
