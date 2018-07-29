@@ -4,7 +4,7 @@
 * messaging 
 ```
 
-#### !!!!!!!!! findListenerLambda and findSpeakerLambda depricated
+#### !!!!!!!!! `findListenerLambda` and `findSpeakerLambda` depricated
 
 # If you want to upload a lambda to aws you have to:
 ```
