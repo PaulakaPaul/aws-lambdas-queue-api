@@ -33,9 +33,14 @@ def lambda_handler(event, context):
         # when speakers_ready == s.REDIS_MAX_LOBBY_NUMBER then the listener will get the lobby and delete it 
         lobby_ready_for_listener_key = f'{lobby_key}:{s.REDIS_LOBBY_READY_FOR_LISTENER_NAMESPACE}'
         speakers_ready = redis_client.get(lobby_ready_for_listener_key)
-        if speakers_ready is None or speakers_ready < s.REDIS_MAX_LOBBY_NUMBER:
-            return f.create_response(200, '', 
-                f'Wait for all the speakers to grab the lobby: {s.REDIS_MAX_LOBBY_NUMBER - speakers_ready} more')
+        if speakers_ready is None or f.get_int_from_bytes(speakers_ready) < s.REDIS_MAX_LOBBY_NUMBER:
+            
+            if speakers_ready is None:
+                speakers_ready = 0
+                
+            return f.create_response(200, 
+            f'Wait for all the speakers to grab the lobby: {s.REDIS_MAX_LOBBY_NUMBER - speakers_ready} more', 
+                '')
 
         # now delete the flag
         redis_client.delete(lobby_ready_for_listener_key)
