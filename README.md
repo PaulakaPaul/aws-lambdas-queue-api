@@ -23,8 +23,8 @@
 
 # API Response Format:
 ```
-        * statusCode: int
-        * errorMessage: string
-        * infoMessage: string
-        * data: string(listener) | list(speakers)
+    * statusCode: int
+    * errorMessage: string
+    * infoMessage: string
+    * data: string(listener) | list(speakers)
 ```
