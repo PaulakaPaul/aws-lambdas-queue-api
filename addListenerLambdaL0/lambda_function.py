@@ -17,11 +17,10 @@ def lambda_handler(event, context):
     # add the listener in the queue for every speaker in the lobby
     for _ in range(s.REDIS_MAX_LOBBY_NUMBER):
         rq.put(listener)
-        print(rq.qsize())
     
     lobby_key = f'{s.REDIS_LOBBY_NAMESPACE}:{listener}'
     rq.db.sadd(lobby_key, s.REDIS_LOBBY_CREATE_FLAG)
-    print(lobby_key)
+    print(f'Lobby key: {lobby_key}')
     
     return f.create_response(200, '', f'Listener added to {rq.key} and to {lobby_key}')
 

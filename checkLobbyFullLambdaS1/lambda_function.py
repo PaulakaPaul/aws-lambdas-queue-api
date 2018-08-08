@@ -26,9 +26,9 @@ def lambda_handler(event, context):
         # (the algortim works only with natural numbers)
         lobby_number_of_speakers = lobby_number_of_speakers + 1
         
-    print(lobby_key)
-    print(lobby_number_of_speakers)
-    print(redis_client.smembers(lobby_key))
+    print("Lobby key: ", lobby_key)
+    print("Lobby number of speaker: ", lobby_number_of_speakers)
+    print("Lobby members: ", redis_client.smembers(lobby_key))
     
     if lobby_number_of_speakers < s.REDIS_MAX_LOBBY_NUMBER:
         return f.create_response(200, 

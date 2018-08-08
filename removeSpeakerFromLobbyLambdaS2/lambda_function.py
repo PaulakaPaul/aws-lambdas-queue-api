@@ -18,7 +18,7 @@ def lambda_handler(event, context):
 
     lobby_key = f'{s.REDIS_LOBBY_NAMESPACE}:{listener}'
 
-    print(redis_client.smembers(lobby_key))
+    print("Lobby members before: ", redis_client.smembers(lobby_key))
     is_deleted = redis_client.srem(lobby_key, speaker)
-    print(redis_client.smembers(lobby_key))
-    return f.create_response(200, '', f'Speaker had been deleted: {is_deleted}')
+    print("Lobby members after: ", redis_client.smembers(lobby_key))
+    return f.create_response(200, '', '', delete_info_message=f'Speaker had been deleted: {is_deleted}')

@@ -20,4 +20,4 @@ def lambda_handler(event, context):
     lobby_ready_for_listener_key = f'{lobby_key}:{s.REDIS_LOBBY_READY_FOR_LISTENER_NAMESPACE}'
     flag_deleted = redis_client.delete(lobby_ready_for_listener_key)
     
-    return f.create_response(200, '', f'The lobby is deleted: {is_deleted}. The flag is deleted: {flag_deleted}')
+    return f.create_response(200, '', '', delete_info_message=f'The lobby is deleted: {is_deleted}. The flag is deleted: {flag_deleted}')

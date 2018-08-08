@@ -1,9 +1,10 @@
 import common.settings as s
 from common.RedisQueue import RedisQueue
 
-def create_response(status_code:int, error_message='', data='') -> dict:
+def create_response(status_code:int, error_message='', data='', delete_info_message='') -> dict:
     return {'statusCode': status_code, 
             'errorMessage': error_message,
+            'deleteInfoMessage': delete_info_message,
             'data': data}
 
 def check_event_for_item(event, item) -> bool:

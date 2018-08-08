@@ -17,4 +17,10 @@
 ```
     * queue/listener -> DELETE, POST, GET
     * queue/speaker -> DELETE, POST, GET
+
+    ### Response format:
+        * statusCode: int
+        * errorMessage: string
+        * infoMessage: string
+        * data: string(listener) | list(speakers)
 ```
