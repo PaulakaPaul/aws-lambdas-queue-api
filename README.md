@@ -18,7 +18,11 @@
     * queue/listener -> DELETE, POST, GET
     * queue/speaker -> DELETE, POST, GET
 
-    ### Response format:
+    
+```
+
+# API Response Format:
+```
         * statusCode: int
         * errorMessage: string
         * infoMessage: string
