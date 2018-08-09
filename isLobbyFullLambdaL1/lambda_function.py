@@ -17,9 +17,9 @@ def lambda_handler(event, context):
     # '-1' because the set has one extra item that it's added at the beggining 
     # by the listener
     if lobby_number_of_speakers == -1: 
-        # if there is only the flag there is need for correction 
-        # (the algortim works only with natural numbers)
-        lobby_number_of_speakers = lobby_number_of_speakers + 1
+        # This is the case that the lobby is not created yet. 
+        # So there is a problem, hence we throw a 400.
+        return f.create_response(400, error_message='There is no lobby to check', data='')
         
     print(f'Lobby key: {lobby_key}')
     print(f'Lobby number of speakers: {lobby_number_of_speakers}')

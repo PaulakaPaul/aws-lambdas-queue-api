@@ -22,9 +22,12 @@ def lambda_handler(event, context):
     # '-1' because the set has one extra item that it's added at the beggining 
     # by the listener
     if lobby_number_of_speakers == -1: 
-        # if there is only the flag there is need for correction 
-        # (the algortim works only with natural numbers)
-        lobby_number_of_speakers = lobby_number_of_speakers + 1
+        # This means that the lobby did not exists 
+        # (by default it has the created flag -> actual len == 1)
+        # So return the lobby deleted flag
+        return f.create_response(200, error_message='', 
+            data=s.REDIS_LOBBY_DELETED_DATA_RESPONSE, delete_info_message='Lobby was deleted')
+       
         
     print("Lobby key: ", lobby_key)
     print("Lobby number of speaker: ", lobby_number_of_speakers)
