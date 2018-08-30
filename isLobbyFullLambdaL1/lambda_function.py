@@ -56,8 +56,7 @@ def lambda_handler(event, context):
         redis_client.delete(lobby_key) 
         
         return f.create_response(200, 
-        '', speakers)
+        '', {s.RESPONSE_FROM_1_SPEAKERS: speakers, s.RESPONSE_FROM_1_LISTENER: listener})
     else:
         return f.create_response(500, 
         f'There are {lobby_number_of_speakers - s.REDIS_MAX_LOBBY_NUMBER} more members in the lobby', '') 
-

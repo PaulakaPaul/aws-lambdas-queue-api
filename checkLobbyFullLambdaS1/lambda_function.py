@@ -49,13 +49,12 @@ def lambda_handler(event, context):
         speakers_ready = redis_client.get(lobby_ready_for_listener_key)
         if speakers_ready:
             redis_client.set(lobby_ready_for_listener_key,
-                redis_client.get(lobby_ready_for_listener_key) + 1)
+                f.get_int_from_bytes(redis_client.get(lobby_ready_for_listener_key)) + 1)
         else:
             redis_client.set(lobby_ready_for_listener_key, 1)
         
         return f.create_response(200, 
-        '', speakers)
+        '', {s.RESPONSE_FROM_1_SPEAKERS: speakers, s.RESPONSE_FROM_1_LISTENER: listener})
     else:
         return f.create_response(500, 
         f'There are {lobby_number_of_speakers - s.REDIS_MAX_LOBBY_NUMBER} more members in the lobby', '') 
-
