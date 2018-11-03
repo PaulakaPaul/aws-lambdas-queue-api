@@ -12,7 +12,7 @@ def lambda_handler(event, context):
     rq = RedisQueue(namespace=s.REDIS_QUEUE_NAMESPACE, **s.REDIS_SETUP)
     
     if f.check_if_listener_has_lobby(rq, listener.encode()):
-        return f.create_response(200, f'Listener already added. Has a lobby and in queue', '')
+        return f.create_response(500, f'Listener already added. Has a lobby and in queue.', '')
     
     # add the listener in the queue for every speaker in the lobby
     for _ in range(s.REDIS_MAX_LOBBY_NUMBER):
